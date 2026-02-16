@@ -24,6 +24,11 @@ type Project = {
   portfolios?: { name: string } | null;
 };
 
+type Feedback = {
+  type: "success" | "error";
+  text: string;
+};
+
 export default function ProjectsPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
@@ -32,7 +37,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const [filterPortfolioId, setFilterPortfolioId] = useState("ALL");
 
@@ -51,7 +56,7 @@ export default function ProjectsPage() {
       .order("name", { ascending: true });
 
     if (error) {
-      setMsg(`Erro ao carregar portfólios: ${error.message}`);
+      setFeedback({ type: "error", text: `Erro ao carregar portfólios: ${error.message}` });
       return;
     }
 
@@ -63,7 +68,7 @@ export default function ProjectsPage() {
   }, [portfolioId, supabase]);
 
   const loadProjects = useCallback(async (portfolioFilter: string) => {
-    setMsg("");
+    setFeedback(null);
 
     let query = supabase
       .from("projects")
@@ -79,7 +84,7 @@ export default function ProjectsPage() {
     const { data, error } = await query;
 
     if (error) {
-      setMsg(`Erro ao carregar projetos: ${error.message}`);
+      setFeedback({ type: "error", text: `Erro ao carregar projetos: ${error.message}` });
       return;
     }
 
@@ -93,22 +98,26 @@ export default function ProjectsPage() {
         router.push("/login");
         return;
       }
-      await Promise.all([loadPortfolios(), loadProjects("ALL")]);
-      setLoading(false);
+
+      try {
+        await Promise.all([loadPortfolios(), loadProjects("ALL")]);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [loadPortfolios, loadProjects, router, supabase]);
 
   async function onCreateProject(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setMsg("");
+    setFeedback(null);
 
     if (!portfolioId) {
-      setMsg("Selecione um portfólio.");
+      setFeedback({ type: "error", text: "Selecione um portfólio." });
       return;
     }
 
     if (!name.trim()) {
-      setMsg("Informe o nome do projeto.");
+      setFeedback({ type: "error", text: "Informe o nome do projeto." });
       return;
     }
 
@@ -121,7 +130,7 @@ export default function ProjectsPage() {
 
     if (userError || !user) {
       setSaving(false);
-      setMsg("Sessão inválida. Faça login novamente.");
+      setFeedback({ type: "error", text: "Sessão inválida. Faça login novamente." });
       router.push("/login");
       return;
     }
@@ -140,7 +149,7 @@ export default function ProjectsPage() {
     setSaving(false);
 
     if (error) {
-      setMsg(`Erro ao criar projeto: ${error.message}`);
+      setFeedback({ type: "error", text: `Erro ao criar projeto: ${error.message}` });
       return;
     }
 
@@ -150,7 +159,7 @@ export default function ProjectsPage() {
     setStartDate("");
     setEndDate("");
     setDescription("");
-    setMsg("Projeto criado com sucesso.");
+    setFeedback({ type: "success", text: "Projeto criado com sucesso." });
     await loadProjects(filterPortfolioId);
   }
 
@@ -302,7 +311,17 @@ export default function ProjectsPage() {
         </div>
       </section>
 
-      {msg ? <p className="rounded border border-gray-300 bg-gray-50 p-3 text-sm">{msg}</p> : null}
+      {feedback ? (
+        <p
+          className={`rounded border p-3 text-sm ${
+            feedback.type === "error"
+              ? "border-red-300 bg-red-50 text-red-700"
+              : "border-green-300 bg-green-50 text-green-700"
+          }`}
+        >
+          {feedback.text}
+        </p>
+      ) : null}
     </div>
   );
 }

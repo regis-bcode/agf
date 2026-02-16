@@ -19,6 +19,11 @@ type ProjectDetails = {
   portfolios?: { id: string; name: string } | null;
 };
 
+type Feedback = {
+  type: "success" | "error";
+  text: string;
+};
+
 export default function ProjectDetailPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
@@ -28,10 +33,10 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<ProjectDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const loadProject = useCallback(async () => {
-    setMsg("");
+    setFeedback(null);
 
     const { data, error } = await supabase
       .from("projects")
@@ -42,7 +47,7 @@ export default function ProjectDetailPage() {
       .single();
 
     if (error) {
-      setMsg(`Erro ao carregar projeto: ${error.message}`);
+      setFeedback({ type: "error", text: `Erro ao carregar projeto: ${error.message}` });
       return;
     }
 
@@ -56,8 +61,11 @@ export default function ProjectDetailPage() {
         router.push("/login");
         return;
       }
-      await loadProject();
-      setLoading(false);
+      try {
+        await loadProject();
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [loadProject, router, supabase]);
 
@@ -68,14 +76,14 @@ export default function ProjectDetailPage() {
     if (!ok) return;
 
     setDeleting(true);
-    setMsg("");
+    setFeedback(null);
 
     const { error } = await supabase.from("projects").delete().eq("id", project.id);
 
     setDeleting(false);
 
     if (error) {
-      setMsg(`Erro ao excluir projeto: ${error.message}`);
+      setFeedback({ type: "error", text: `Erro ao excluir projeto: ${error.message}` });
       return;
     }
 
@@ -90,7 +98,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="grid gap-3">
         <p>Projeto não encontrado.</p>
-        {msg ? <p className="text-sm text-red-600">{msg}</p> : null}
+        {feedback ? <p className="text-sm text-red-600">{feedback.text}</p> : null}
         <Link className="underline" href="/app/projects">
           Voltar para Projetos
         </Link>
@@ -164,7 +172,11 @@ export default function ProjectDetailPage() {
         Voltar para Projetos
       </Link>
 
-      {msg ? <p className="rounded border border-gray-300 bg-gray-50 p-3 text-sm">{msg}</p> : null}
+      {feedback ? (
+        <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {feedback.text}
+        </p>
+      ) : null}
     </div>
   );
 }
