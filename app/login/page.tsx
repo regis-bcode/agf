@@ -32,83 +32,264 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-6 py-12 text-slate-100">
-      <div className="pointer-events-none absolute -left-32 top-0 h-80 w-80 rounded-full bg-indigo-500/30 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-28 -right-20 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
+    <main className="login-page">
+      <div className="blur blur-one" />
+      <div className="blur blur-two" />
 
-      <div className="relative mx-auto flex min-h-[80vh] w-full max-w-5xl items-center justify-center">
-        <section className="grid w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-900/80 shadow-2xl shadow-indigo-950/40 backdrop-blur md:grid-cols-2">
-          <div className="hidden border-r border-white/10 bg-gradient-to-br from-indigo-500/25 via-transparent to-cyan-400/15 p-10 md:block">
-            <p className="mb-4 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-100">
-              AGF Portfolio
+      <section className="card">
+        <aside className="hero">
+          <p className="tag">AGF Portfolio</p>
+          <h1>Bem-vindo de volta.</h1>
+          <p className="subtitle">
+            Acesse sua área para acompanhar projetos, resultados e atualizar seu
+            portfólio com uma experiência rápida e segura.
+          </p>
+
+          <ul>
+            <li>⚡ Gestão centralizada de projetos</li>
+            <li>🔒 Ambiente seguro com autenticação</li>
+            <li>📈 Visão clara do seu progresso</li>
+          </ul>
+        </aside>
+
+        <div className="form-side">
+          <h2>Login AGF</h2>
+          <p className="form-subtitle">Entre com suas credenciais para continuar.</p>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleLogin();
+            }}
+          >
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+            />
+
+            <label htmlFor="password">Senha</label>
+            <input
+              id="password"
+              value={password}
+              type="password"
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Digite sua senha"
+            />
+
+            <button type="submit" disabled={loading}>
+              {loading ? "Entrando..." : "Entrar"}
+            </button>
+
+            <p className={`message ${message ? "error" : "hint"}`}>
+              {message || "Use seu email e senha cadastrados para acessar."}
             </p>
-            <h1 className="text-4xl font-black leading-tight text-white">
-              Bem-vindo de volta.
-            </h1>
-            <p className="mt-5 max-w-sm text-sm leading-6 text-slate-200/90">
-              Acesse sua área para acompanhar projetos, resultados e atualizar
-              seu portfólio com uma experiência rápida e segura.
-            </p>
-            <div className="mt-10 space-y-3 text-sm text-slate-200/80">
-              <p>⚡ Gestão centralizada de projetos</p>
-              <p>🔒 Ambiente seguro com autenticação</p>
-              <p>📈 Visão clara do seu progresso</p>
-            </div>
-          </div>
+          </form>
+        </div>
+      </section>
 
-          <div className="p-6 sm:p-10">
-            <h2 className="text-3xl font-bold text-white">Login AGF</h2>
-            <p className="mt-2 text-sm text-slate-300">
-              Entre com suas credenciais para continuar.
-            </p>
+      <style jsx>{`
+        .login-page {
+          min-height: 100vh;
+          background: radial-gradient(circle at 15% 10%, #312e81 0%, #020617 40%),
+            radial-gradient(circle at 90% 80%, #155e75 0%, transparent 45%),
+            #020617;
+          color: #f8fafc;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          position: relative;
+          overflow: hidden;
+        }
 
-            <form
-              className="mt-8 space-y-5"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void handleLogin();
-              }}
-            >
-              <label className="block text-sm">
-                <span className="mb-2 block font-medium text-slate-200">Email</span>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  className="w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/80 focus:ring-2 focus:ring-cyan-400/30"
-                />
-              </label>
+        .blur {
+          position: absolute;
+          border-radius: 999px;
+          filter: blur(60px);
+          pointer-events: none;
+        }
 
-              <label className="block text-sm">
-                <span className="mb-2 block font-medium text-slate-200">Senha</span>
-                <input
-                  value={password}
-                  type="password"
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Digite sua senha"
-                  className="w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/80 focus:ring-2 focus:ring-cyan-400/30"
-                />
-              </label>
+        .blur-one {
+          width: 280px;
+          height: 280px;
+          top: -80px;
+          left: -60px;
+          background: rgba(99, 102, 241, 0.45);
+        }
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:brightness-110 focus:ring-2 focus:ring-cyan-400/50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "Entrando..." : "Entrar"}
-              </button>
+        .blur-two {
+          width: 360px;
+          height: 360px;
+          right: -90px;
+          bottom: -100px;
+          background: rgba(6, 182, 212, 0.25);
+        }
 
-              <p
-                className={`min-h-6 text-sm ${
-                  message ? "text-rose-300" : "text-slate-400"
-                }`}
-              >
-                {message || "Use seu email e senha cadastrados para acessar."}
-              </p>
-            </form>
-          </div>
-        </section>
-      </div>
+        .card {
+          width: min(100%, 980px);
+          min-height: 620px;
+          display: grid;
+          grid-template-columns: 1.05fr 1fr;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 28px;
+          overflow: hidden;
+          background: rgba(15, 23, 42, 0.85);
+          box-shadow: 0 35px 90px rgba(2, 6, 23, 0.6);
+          backdrop-filter: blur(8px);
+          z-index: 1;
+        }
+
+        .hero {
+          padding: 44px;
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
+          background: linear-gradient(
+            135deg,
+            rgba(79, 70, 229, 0.24),
+            rgba(15, 23, 42, 0.25) 55%,
+            rgba(34, 211, 238, 0.14)
+          );
+        }
+
+        .tag {
+          display: inline-flex;
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          border-radius: 999px;
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          margin-bottom: 20px;
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        h1 {
+          font-size: clamp(30px, 4vw, 42px);
+          line-height: 1.1;
+          margin: 0;
+        }
+
+        .subtitle {
+          margin-top: 16px;
+          color: #cbd5e1;
+          line-height: 1.7;
+          max-width: 420px;
+        }
+
+        ul {
+          margin: 34px 0 0;
+          padding: 0;
+          list-style: none;
+          display: grid;
+          gap: 12px;
+          color: #e2e8f0;
+        }
+
+        .form-side {
+          padding: 44px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+
+        h2 {
+          margin: 0;
+          font-size: 34px;
+        }
+
+        .form-subtitle {
+          margin: 10px 0 0;
+          color: #cbd5e1;
+          font-size: 14px;
+        }
+
+        form {
+          margin-top: 30px;
+          display: grid;
+          gap: 14px;
+        }
+
+        label {
+          font-size: 14px;
+          font-weight: 600;
+          color: #e2e8f0;
+        }
+
+        input {
+          margin-top: 8px;
+          width: 100%;
+          border-radius: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background: rgba(30, 41, 59, 0.82);
+          color: #f8fafc;
+          padding: 13px 14px;
+          font-size: 14px;
+          outline: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        input:focus {
+          border-color: rgba(34, 211, 238, 0.9);
+          box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.2);
+        }
+
+        button {
+          margin-top: 8px;
+          border: 0;
+          border-radius: 14px;
+          color: #ffffff;
+          font-weight: 700;
+          padding: 13px 16px;
+          background: linear-gradient(90deg, #4f46e5, #06b6d4);
+          cursor: pointer;
+          transition: transform 0.15s ease, filter 0.15s ease;
+        }
+
+        button:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.08);
+        }
+
+        button:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .message {
+          min-height: 24px;
+          margin: 2px 0 0;
+          font-size: 14px;
+        }
+
+        .hint {
+          color: #94a3b8;
+        }
+
+        .error {
+          color: #fda4af;
+        }
+
+        @media (max-width: 900px) {
+          .card {
+            grid-template-columns: 1fr;
+            min-height: auto;
+          }
+
+          .hero {
+            border-right: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+          }
+
+          .form-side {
+            padding: 30px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
