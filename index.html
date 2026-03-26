@@ -82,6 +82,10 @@
         .legend-item-clickable:hover {
             opacity: 0.7;
         }
+
+        .active-filter-ring {
+            box-shadow: 0 0 0 2px #6366f1, 0 8px 32px 0 rgba(99, 102, 241, 0.2);
+        }
     </style>
 </head>
 <body class="bg-[#F8FAFC] dark:bg-[#0B0F1A] text-slate-900 dark:text-slate-100 min-h-screen">
@@ -127,6 +131,7 @@
             const [rawData, setRawData] = useState(initialData);
             const [selectedProduct, setSelectedProduct] = useState('Todos');
             const [selectedType, setSelectedType] = useState('Todos');
+            const [selectedSprint, setSelectedSprint] = useState('Todos'); // Novo filtro: 'Current', 'Next' ou 'Backlog'
             const [searchTerm, setSearchTerm] = useState('');
             const [lastSync, setLastSync] = useState('Default');
             const [importMessage, setImportMessage] = useState({ type: '', text: '' });
@@ -147,20 +152,32 @@
             const products = useMemo(() => ['Todos', ...new Set(rawData.map(d => d.product))], [rawData]);
             const types = useMemo(() => [...new Set(rawData.map(d => d.type || 'Indefinido'))], [rawData]);
 
+            // Filtragem global dos dados respeitando Produto, Busca, Tipo (Legenda) e agora SPRINT
             const filteredData = useMemo(() => {
                 return rawData.filter(item => {
                     const matchProd = selectedProduct === 'Todos' || item.product === selectedProduct;
                     const matchSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
                     const matchType = selectedType === 'Todos' || (item.type || 'Indefinido') === selectedType;
-                    return matchProd && matchSearch && matchType;
+                    
+                    let matchSprint = true;
+                    if (selectedSprint === 'Current') {
+                        matchSprint = item.sprint && item.sprint.includes('20/03');
+                    } else if (selectedSprint === 'Next') {
+                        matchSprint = item.status === 'Planejado';
+                    } else if (selectedSprint === 'Backlog') {
+                        matchSprint = item.status.toLowerCase().includes('backlog');
+                    }
+                    
+                    return matchProd && matchSearch && matchType && matchSprint;
                 });
-            }, [rawData, selectedProduct, searchTerm, selectedType]);
+            }, [rawData, selectedProduct, searchTerm, selectedType, selectedSprint]);
 
             const metrics = useMemo(() => {
                 const now = new Date();
                 const globalFilter = (d) => {
                     const matchProd = selectedProduct === 'Todos' || d.product === selectedProduct;
                     const matchType = selectedType === 'Todos' || (d.type || 'Indefinido') === selectedType;
+                    // Note: As métricas dos quadros não são filtradas por 'selectedSprint' para não zerarem a si mesmas
                     return matchProd && matchType;
                 };
                 
@@ -187,13 +204,13 @@
                     return row;
                 });
 
-                // Contadores por Tipo de Entrega (Respeitando Produto e Busca)
+                // Contadores por Tipo de Entrega
                 const typeCounters = types.map(t => ({
                     name: t,
                     count: filteredData.filter(d => (d.type || 'Indefinido') === t).length
                 })).filter(t => t.count > 0).sort((a,b) => b.count - a.count);
 
-                // Contadores por Status (Respeitando Produto e Busca)
+                // Contadores por Status
                 const statusNames = [...new Set(rawData.map(d => d.status))];
                 const statusCounters = statusNames.map(s => ({
                     name: s,
@@ -271,25 +288,36 @@
                 <div className="flex flex-col min-h-screen">
                     {/* NAV BAR */}
                     <nav className="sticky top-0 z-50 glass border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-6 cursor-pointer" onClick={() => { setCurrentView('dashboard'); setSelectedType('Todos'); }}>
+                        <div className="flex items-center gap-6 cursor-pointer" onClick={() => { setCurrentView('dashboard'); setSelectedType('Todos'); setSelectedSprint('Todos'); }}>
                             <div className="w-10 h-10 bg-brand-600 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20">
                                 <Icon name="Dashboard" className="text-white w-6 h-6" />
                             </div>
                             <div className="leading-none">
                                 <h1 className="text-xl font-black tracking-tighter uppercase dark:text-white italic">ARGUS<span className="text-brand-500 not-italic">CORE</span></h1>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Operational BI v6.9.5</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Operational BI v7.0</p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-4">
-                            {selectedType !== 'Todos' && (
-                                <div className="flex items-center gap-2 bg-brand-500/10 text-brand-500 px-3 py-1.5 rounded-xl border border-brand-500/20 text-[10px] font-black uppercase">
-                                    <span>Tipo: {selectedType}</span>
-                                    <button onClick={() => setSelectedType('Todos')} className="hover:text-red-500 transition-colors">
-                                        <Icon name="Close" className="w-3 h-3" />
-                                    </button>
-                                </div>
-                            )}
+                            {/* Filtros Ativos Indicators */}
+                            <div className="hidden md:flex items-center gap-2">
+                                {selectedSprint !== 'Todos' && (
+                                    <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-3 py-1.5 rounded-xl border border-emerald-500/20 text-[10px] font-black uppercase">
+                                        <span>Filtro: {selectedSprint === 'Current' ? 'Sprint Atual' : selectedSprint === 'Next' ? 'Prox Sprint' : 'Backlog'}</span>
+                                        <button onClick={() => setSelectedSprint('Todos')} className="hover:text-red-500 transition-colors">
+                                            <Icon name="Close" className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                )}
+                                {selectedType !== 'Todos' && (
+                                    <div className="flex items-center gap-2 bg-brand-500/10 text-brand-500 px-3 py-1.5 rounded-xl border border-brand-500/20 text-[10px] font-black uppercase">
+                                        <span>Tipo: {selectedType}</span>
+                                        <button onClick={() => setSelectedType('Todos')} className="hover:text-red-500 transition-colors">
+                                            <Icon name="Close" className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
                             <select 
                                 className="bg-slate-100 dark:bg-slate-900 border-none rounded-xl text-xs font-black px-4 py-2.5 outline-none cursor-pointer dark:text-slate-300"
@@ -309,13 +337,19 @@
                     <main className="flex-grow max-w-[1600px] mx-auto w-full p-6 space-y-8 fade-in">
                         {currentView === 'dashboard' ? (
                             <div className="space-y-8">
-                                {/* TRÊS COLUNAS: SPRINT E BACKLOG */}
+                                {/* TRÊS COLUNAS COM INTERATIVIDADE DE FILTRO */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="glass p-6 rounded-[2.5rem] neon-border-green shadow-sm flex flex-col justify-between relative group">
+                                    {/* SPRINT ATUAL - CLICÁVEL */}
+                                    <div 
+                                        onClick={() => setSelectedSprint(prev => prev === 'Current' ? 'Todos' : 'Current')}
+                                        className={`glass p-6 rounded-[2.5rem] neon-border-green shadow-sm flex flex-col justify-between relative group cursor-pointer transition-all hover:scale-[1.02] ${selectedSprint === 'Current' ? 'active-filter-ring' : ''}`}
+                                    >
                                         <div className="flex justify-between items-start mb-6">
                                             <div>
                                                 <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">STATUS: CURRENT SPRINT</p>
-                                                <h3 className="text-2xl font-black dark:text-white tracking-tighter">Ciclo Ativo</h3>
+                                                <h3 className="text-2xl font-black dark:text-white tracking-tighter flex items-center gap-2">
+                                                    Ciclo Ativo {selectedSprint === 'Current' && <Icon name="Dashboard" className="w-4 h-4 text-emerald-500" />}
+                                                </h3>
                                             </div>
                                             {metrics.current.overdue > 0 && (
                                                 <div className="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 pulse-red">
@@ -351,10 +385,16 @@
                                         </div>
                                     </div>
 
-                                    <div className="glass p-6 rounded-[2.5rem] neon-border-blue shadow-sm flex flex-col justify-between">
+                                    {/* PROX SPRINT - CLICÁVEL */}
+                                    <div 
+                                        onClick={() => setSelectedSprint(prev => prev === 'Next' ? 'Todos' : 'Next')}
+                                        className={`glass p-6 rounded-[2.5rem] neon-border-blue shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] ${selectedSprint === 'Next' ? 'active-filter-ring' : ''}`}
+                                    >
                                         <div className="mb-6">
                                             <p className="text-[10px] font-black text-brand-500 uppercase tracking-[0.2em] mb-1">STATUS: NEXT SPRINT</p>
-                                            <h3 className="text-2xl font-black dark:text-white tracking-tighter">Planeamento V.Next</h3>
+                                            <h3 className="text-2xl font-black dark:text-white tracking-tighter flex items-center gap-2">
+                                                Planeamento V.Next {selectedSprint === 'Next' && <Icon name="Dashboard" className="w-4 h-4 text-brand-500" />}
+                                            </h3>
                                         </div>
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-end">
@@ -380,7 +420,11 @@
                                         </div>
                                     </div>
 
-                                    <div className="glass p-6 rounded-[2.5rem] neon-border-amber shadow-sm flex flex-col">
+                                    {/* BACKLOG - CLICÁVEL */}
+                                    <div 
+                                        onClick={() => setSelectedSprint(prev => prev === 'Backlog' ? 'Todos' : 'Backlog')}
+                                        className={`glass p-6 rounded-[2.5rem] neon-border-amber shadow-sm flex flex-col cursor-pointer transition-all hover:scale-[1.02] ${selectedSprint === 'Backlog' ? 'active-filter-ring' : ''}`}
+                                    >
                                         <div className="flex justify-between items-start mb-6">
                                             <div>
                                                 <p className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">REPO: BACKLOG POR PRODUTO</p>
@@ -449,7 +493,7 @@
                                         </div>
                                     </div>
 
-                                    {/* NOVOS CARDS: CONTADOR POR TIPO DE ENTREGA */}
+                                    {/* CARDS: CONTADOR POR TIPO DE ENTREGA */}
                                     <div className="col-span-12 space-y-4">
                                         <div className="flex items-center gap-2 mb-2">
                                             <div className="w-1.5 h-6 bg-brand-500 rounded-full"></div>
@@ -473,7 +517,7 @@
                                         </div>
                                     </div>
 
-                                    {/* NOVOS CARDS: CONTADOR POR STATUS */}
+                                    {/* CARDS: CONTADOR POR STATUS */}
                                     <div className="col-span-12 space-y-4 mt-4">
                                         <div className="flex items-center gap-2 mb-2">
                                             <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
@@ -634,7 +678,7 @@
                     </main>
 
                     <footer className="px-6 py-10 border-t border-slate-200 dark:border-slate-800 text-center">
-                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-400">Argus BI Infrastructure • v6.9.5 Interactive Indicators</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-400">Argus BI Infrastructure • v7.0.0 Interactive Filters</p>
                     </footer>
                 </div>
             );
