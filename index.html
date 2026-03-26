@@ -208,12 +208,17 @@
 
             const typeDataForChart = useMemo(() => {
                 const baseData = rawData.filter(d => selectedProduct === 'Todos' || d.product === selectedProduct);
+                const totalCount = baseData.length;
                 const counts = baseData.reduce((acc, item) => {
                     const t = item.type || 'Indefinido';
                     acc[t] = (acc[t] || 0) + 1;
                     return acc;
                 }, {});
-                return Object.entries(counts).map(([name, value]) => ({ name, value }));
+                return Object.entries(counts).map(([name, value]) => ({ 
+                    name, 
+                    value, 
+                    percentage: totalCount > 0 ? ((value / totalCount) * 100).toFixed(1) : 0 
+                }));
             }, [rawData, selectedProduct]);
 
             const handleFileUpload = (e) => {
@@ -356,7 +361,17 @@
                                         <div className="h-64">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
-                                                    <Pie data={typeDataForChart} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={8} dataKey="value" label={({name, value}) => `${name}: ${value}`}>
+                                                    <Pie 
+                                                        data={typeDataForChart} 
+                                                        cx="50%" 
+                                                        cy="50%" 
+                                                        innerRadius={50} 
+                                                        outerRadius={80} 
+                                                        paddingAngle={8} 
+                                                        dataKey="value" 
+                                                        label={({name, value, percentage}) => `${name}: ${value} (${percentage}%)`}
+                                                        labelLine={true}
+                                                    >
                                                         {typeDataForChart.map((e,i) => (<Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} stroke="none" opacity={selectedType === 'Todos' || selectedType === e.name ? 1 : 0.3} />))}
                                                     </Pie>
                                                     <Tooltip contentStyle={{background: isDark ? '#1e293b' : '#fff', border:'none', borderRadius:'12px'}} />
@@ -477,7 +492,7 @@
                     </main>
 
                     <footer className="px-6 py-10 border-t border-slate-200 dark:border-slate-800 text-center">
-                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-400">Argus BI Infrastructure • Operational Intelligence Engine • v7.6.0 Unified Dashboard</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-400">Argus BI Infrastructure • Operational Intelligence Engine • v7.6.1 Percentages</p>
                     </footer>
                 </div>
             );
