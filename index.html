@@ -1,371 +1,486 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Executivo Argus - Dashboard</title>
+    <title>Argus Core - Tech Dashboard</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React e ReactDOM -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+                            400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+                            800: '#3730a3', 900: '#312e81', 950: '#0e0c2e',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Bibliotecas Core -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <!-- PropTypes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
-    <!-- Recharts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.js"></script>
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- SheetJS (XLSX) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 20px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-        .card-shadow { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05); }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366f144; border-radius: 20px; }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .neon-border-green { border-left: 4px solid #10b981; }
+        .neon-border-blue { border-left: 4px solid #6366f1; }
+        .neon-border-amber { border-left: 4px solid #f59e0b; }
+        .neon-border-indigo { border-left: 4px solid #818cf8; }
+
+        .pulse-red {
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
     </style>
 </head>
-<body class="bg-[#F9FAFB] text-slate-900">
+<body class="bg-[#F8FAFC] dark:bg-[#0B0F1A] text-slate-900 dark:text-slate-100 min-h-screen">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useMemo, useEffect } = React;
         const { 
             BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-            PieChart, Pie, Cell 
+            PieChart, Pie, Cell, LabelList 
         } = window.Recharts;
 
-        const Icon = ({ name, className = "w-4 h-4" }) => {
+        // --- CONSTANTES ---
+        const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#0ea5e9'];
+
+        const Icon = ({ name, className = "w-5 h-5" }) => {
             const icons = {
-                LayoutDashboard: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>,
-                Settings: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-                Search: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
-                Filter: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
-                Database: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>,
-                Upload: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
-                Calendar: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
-                Package: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
-                Refresh: <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+                Dashboard: <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+                Settings: <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+                Sun: <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M14 12a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
+                Moon: <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
+                Alert: <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+                Layers: <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
+                Upload: <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
             };
-            return icons[name] || <div className={className}>?</div>;
+            return icons[name] || <div>?</div>;
         };
 
         const initialData = [
-            { id: 'v1', product: 'Argus Vision', title: 'Filtro de Convénio (Ajustes)', status: 'Backlog Produto', type: 'Correção', assignee: 'Nicollas-Lanzone', sprint: 'Roadmap' },
-            { id: 'v2', product: 'Argus Vision', title: 'Restringir Filtros Base Válida', status: 'Backlog Produto', type: 'Melhoria', assignee: 'Nicollas-Lanzone', sprint: 'Roadmap' },
-            { id: 'w1', product: 'Argus Watch', title: 'Dashboard Investigador (Correção)', status: 'Planejado', type: 'Correção', assignee: 'Markinjr92', sprint: '20/03 - 02/04' },
-            { id: 'c1', product: 'Argus Clinical', title: 'Assinatura Eletrónica', status: 'Backlog Produto', type: 'Feature', assignee: 'cttgabriel', sprint: 'Roadmap' }
+            { id: '1', product: 'Argus Vision', title: 'Filtro Dinâmico de Convénio', status: 'Entregue', type: 'Feature', assignee: 'Nicollas-Lanzone', activityType: 'BackEnd', sprint: '20/03', endDate: '2026-03-24' },
+            { id: '2', product: 'Argus Experience', title: 'IA Chatbot - Mockup Base', status: 'Planejado', type: 'Melhoria', assignee: 'oliveirafacc', activityType: 'FrontEnd', sprint: '20/03', endDate: '2026-03-25' },
+            { id: '3', product: 'Follow-Up', title: 'Integração CRM Automática', status: 'Backlog', type: 'Feature', assignee: 'Markinjr92', activityType: 'BackEnd', sprint: 'Roadmap', endDate: null },
+            { id: '4', product: 'Argus Watch', title: 'Correção Erro de Leitos', status: 'Entregue', type: 'Bug', assignee: 'Markinjr92', activityType: 'BackEnd', sprint: '20/03', endDate: '2026-03-22' }
         ];
 
-        const STATUS_COLORS = { 'Entregue': '#10b981', 'Planejado': '#3b82f6', 'Backlog Produto': '#64748b', 'Backlog': '#64748b' };
-        const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-
         function App() {
+            const [isDark, setIsDark] = useState(true);
             const [currentView, setCurrentView] = useState('dashboard');
             const [rawData, setRawData] = useState(initialData);
             const [selectedProduct, setSelectedProduct] = useState('Todos');
             const [searchTerm, setSearchTerm] = useState('');
-            const [chartFilters, setChartFilters] = useState({ status: null, assignee: null });
+            const [lastSync, setLastSync] = useState('Default');
             const [importMessage, setImportMessage] = useState({ type: '', text: '' });
 
-            const products = useMemo(() => ['Todos', ...new Set(rawData.map(item => item.product))], [rawData]);
+            useEffect(() => {
+                const root = window.document.documentElement;
+                if (isDark) root.classList.add('dark');
+                else root.classList.remove('dark');
+            }, [isDark]);
+
+            const parseDate = (dateVal) => {
+                if (!dateVal) return null;
+                if (typeof dateVal === 'number') return new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+                const d = new Date(dateVal);
+                return isNaN(d.getTime()) ? null : d;
+            };
+
+            const products = useMemo(() => ['Todos', ...new Set(rawData.map(d => d.product))], [rawData]);
+            const types = useMemo(() => [...new Set(rawData.map(d => d.type || 'Indefinido'))], [rawData]);
 
             const filteredData = useMemo(() => {
                 return rawData.filter(item => {
                     const matchProd = selectedProduct === 'Todos' || item.product === selectedProduct;
                     const matchSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
-                    const matchStatus = !chartFilters.status || item.status === chartFilters.status;
-                    const matchAssignee = !chartFilters.assignee || item.assignee === chartFilters.assignee;
-                    return matchProd && matchSearch && matchStatus && matchAssignee;
+                    return matchProd && matchSearch;
                 });
-            }, [selectedProduct, searchTerm, chartFilters, rawData]);
+            }, [rawData, selectedProduct, searchTerm]);
 
-            const stats = useMemo(() => {
-                const current = rawData.filter(i => (selectedProduct === 'Todos' || i.product === selectedProduct) && (i.sprint.includes('20/03') || i.status === 'Entregue'));
-                const total = current.length;
-                const delivered = current.filter(i => i.status === 'Entregue').length;
-                return { total, delivered, progress: total > 0 ? (delivered / total) * 100 : 0 };
-            }, [rawData, selectedProduct]);
+            const metrics = useMemo(() => {
+                const now = new Date();
+                const prodFilter = (d) => selectedProduct === 'Todos' || d.product === selectedProduct;
+                
+                const currentItems = rawData.filter(d => prodFilter(d) && (d.sprint && d.sprint.includes('20/03')));
+                const currentDelivered = currentItems.filter(d => d.status === 'Entregue').length;
+                const currentOverdue = currentItems.filter(d => {
+                    const endDate = parseDate(d.endDate);
+                    return d.status !== 'Entregue' && endDate && endDate < now;
+                }).length;
 
-            const backlogCount = useMemo(() => {
-                return rawData.filter(i => (selectedProduct === 'Todos' || i.product === selectedProduct) && i.status.toLowerCase().includes('backlog')).length;
-            }, [rawData, selectedProduct]);
+                const nextItems = rawData.filter(d => prodFilter(d) && d.status === 'Planejado');
+                const nextDelivered = nextItems.filter(d => d.status === 'Entregue').length;
 
-            const statusData = useMemo(() => {
-                const counts = filteredData.reduce((acc, item) => { acc[item.status] = (acc[item.status] || 0) + 1; return acc; }, {});
+                const backlogByProduct = products.filter(p => p !== 'Todos').map(p => ({
+                    name: p,
+                    count: rawData.filter(i => i.product === p && i.status.toLowerCase().includes('backlog')).length
+                })).filter(p => p.count > 0).sort((a,b) => b.count - a.count);
+
+                const productTypeMatrix = products.filter(p => p !== 'Todos').map(p => {
+                    const row = { product: p };
+                    types.forEach(t => {
+                        row[t] = rawData.filter(i => i.product === p && (i.type || 'Indefinido') === t).length;
+                    });
+                    return row;
+                });
+
+                return {
+                    current: { total: currentItems.length, delivered: currentDelivered, pending: currentItems.length - currentDelivered, overdue: currentOverdue, perc: currentItems.length > 0 ? (currentDelivered / currentItems.length) * 100 : 0 },
+                    next: { total: nextItems.length, delivered: nextDelivered, pending: nextItems.length - nextDelivered, perc: nextItems.length > 0 ? (nextDelivered / nextItems.length) * 100 : 0 },
+                    backlog: { total: rawData.filter(d => prodFilter(d) && d.status.toLowerCase().includes('backlog')).length, items: backlogByProduct },
+                    productTypeMatrix
+                };
+            }, [rawData, selectedProduct, products, types]);
+
+            const typeDataForChart = useMemo(() => {
+                const counts = filteredData.reduce((acc, item) => {
+                    const t = item.type || 'Indefinido';
+                    acc[t] = (acc[t] || 0) + 1;
+                    return acc;
+                }, {});
                 return Object.entries(counts).map(([name, value]) => ({ name, value }));
             }, [filteredData]);
 
-            const assigneeData = useMemo(() => {
-                const counts = filteredData.reduce((acc, item) => { acc[item.assignee] = (acc[item.assignee] || 0) + 1; return acc; }, {});
-                return Object.entries(counts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 5);
-            }, [filteredData]);
-
-            const handleFileUpload = (event) => {
-                const file = event.target.files[0];
-                if (!file || !window.XLSX) return;
-                setImportMessage({ type: 'info', text: 'Importando...' });
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setImportMessage({ type: 'info', text: 'Sincronizando...' });
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = (event) => {
                     try {
-                        const data = new Uint8Array(e.target.result);
+                        const data = new Uint8Array(event.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
-                        let allData = [];
+                        let allItems = [];
                         workbook.SheetNames.forEach(name => {
                             const ws = workbook.Sheets[name];
                             const json = XLSX.utils.sheet_to_json(ws);
-                            const processed = json.map((row, idx) => {
-                                const getVal = (names) => {
-                                    const key = Object.keys(row).find(k => names.some(n => k.toLowerCase().replace(/\s/g, '').includes(n.toLowerCase().replace(/\s/g, ''))));
-                                    return key ? String(row[key]).trim() : '';
-                                };
-                                return {
-                                    id: `${name}-${idx}-${Date.now()}`,
-                                    title: getVal(['Title', 'Demanda', 'Nome']),
-                                    status: getVal(['Status']) || 'Backlog',
-                                    assignee: getVal(['Assignee', 'Responsável', 'Dono', 'Assignees']) || 'Sem Responsável',
-                                    product: getVal(['Produto', 'Product']) || name,
-                                    sprint: getVal(['Sprint', 'Release', 'Sprint Release']) || 'Roadmap'
-                                };
-                            }).filter(i => i.title);
-                            allData = [...allData, ...processed];
+                            allItems = [...allItems, ...json.map((row, idx) => ({
+                                id: `${name}-${idx}-${Date.now()}`,
+                                title: row.Title || row.Demanda || row.Nome || 'Sem Nome',
+                                status: row.Status || 'Backlog',
+                                assignee: row.Assignees || row.Responsável || 'Indefinido',
+                                product: row.Produto || row.Product || name,
+                                type: row['Tipo de Entrega'] || row.Tipo || 'Feature',
+                                activityType: row['Tipo de Atividade'] || row['Tipo Atividade'] || '--',
+                                sprint: String(row['Sprint Release'] || row.Sprint || 'Roadmap'),
+                                endDate: row['Data Fim Previsto'] || row.EndDate || null
+                            })).filter(i => i.title !== 'Sem Nome')];
                         });
-                        setRawData(allData);
-                        setImportMessage({ type: 'success', text: 'Sucesso!' });
-                        setTimeout(() => { setImportMessage({type:'', text:''}); setCurrentView('dashboard'); }, 800);
-                    } catch (err) { setImportMessage({ type: 'error', text: 'Falha no XLSX' }); }
+                        setRawData(allItems);
+                        setLastSync(new Date().toLocaleTimeString());
+                        setImportMessage({ type: 'success', text: 'Dados Importados!' });
+                        setTimeout(() => setCurrentView('dashboard'), 800);
+                    } catch (err) { setImportMessage({ type: 'error', text: 'Erro no processamento.' }); }
                 };
                 reader.readAsArrayBuffer(file);
             };
 
+            const CustomLabel = ({ x, y, width, height, value }) => (
+                value > 0 ? (
+                    <text x={x + width / 2} y={y - 12} fill={isDark ? "#fff" : "#000"} textAnchor="middle" fontSize={14} fontWeight="900">{value}</text>
+                ) : null
+            );
+
+            const StackedLabel = ({ x, y, width, height, value }) => (
+                value > 0 ? (
+                    <text x={x + width / 2} y={y + height / 2} fill="#fff" textAnchor="middle" dominantBaseline="middle" fontSize={10} fontWeight="900">
+                        {value}
+                    </text>
+                ) : null
+            );
+
             return (
                 <div className="flex flex-col min-h-screen">
-                    {/* Top Slim Header */}
-                    <nav className="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between sticky top-0 z-50 card-shadow">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-indigo-600 p-1.5 rounded-lg text-white">
-                                <Icon name="LayoutDashboard" className="w-5 h-5"/>
+                    {/* NAV BAR */}
+                    <nav className="sticky top-0 z-50 glass border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-6 cursor-pointer" onClick={() => setCurrentView('dashboard')}>
+                            <div className="w-10 h-10 bg-brand-600 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+                                <Icon name="Dashboard" className="text-white w-6 h-6" />
                             </div>
-                            <h1 className="text-sm font-black tracking-tight uppercase leading-none">
-                                ARGUS <span className="text-indigo-600">CORE</span>
-                                <span className="ml-2 text-[10px] text-slate-400 font-bold border border-slate-100 px-1 rounded">v5.6</span>
-                            </h1>
+                            <div className="leading-none">
+                                <h1 className="text-xl font-black tracking-tighter uppercase dark:text-white italic">ARGUS<span className="text-brand-500 not-italic">CORE</span></h1>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Operational BI v6.8</p>
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            {currentView === 'dashboard' && (
-                                <div className="flex items-center gap-2">
-                                    <div className="relative group">
-                                        <Icon name="Search" className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"/>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Buscar..." 
-                                            className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium w-40 md:w-60 focus:w-80 transition-all outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                            value={searchTerm}
-                                            onChange={e => setSearchTerm(e.target.value)}
-                                        />
-                                    </div>
-                                    <select 
-                                        className="bg-white border border-slate-200 rounded-lg text-xs font-bold px-2 py-1.5 outline-none cursor-pointer hover:bg-slate-50"
-                                        value={selectedProduct}
-                                        onChange={e => setSelectedProduct(e.target.value)}
-                                    >
-                                        {products.map(p => <option key={p} value={p}>{p}</option>)}
-                                    </select>
-                                </div>
-                            )}
-                            <button 
-                                onClick={() => setCurrentView(currentView === 'dashboard' ? 'settings' : 'dashboard')}
-                                className={`p-2 rounded-lg transition-colors ${currentView === 'settings' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-50'}`}
+                        <div className="flex items-center gap-4">
+                            <select 
+                                className="bg-slate-100 dark:bg-slate-900 border-none rounded-xl text-xs font-black px-4 py-2.5 outline-none cursor-pointer dark:text-slate-300"
+                                value={selectedProduct} onChange={e => setSelectedProduct(e.target.value)}
                             >
-                                <Icon name="Settings" className="w-5 h-5"/>
+                                {products.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            <button onClick={() => setIsDark(!isDark)} className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-500 hover:text-brand-500 transition-colors">
+                                <Icon name={isDark ? "Sun" : "Moon"} />
+                            </button>
+                            <button onClick={() => setCurrentView('settings')} className="p-2.5 rounded-xl bg-brand-600 text-white shadow-lg">
+                                <Icon name="Settings" />
                             </button>
                         </div>
                     </nav>
 
-                    <main className="flex-grow p-4 md:p-6 space-y-4 max-w-[1600px] mx-auto w-full">
+                    <main className="flex-grow max-w-[1600px] mx-auto w-full p-6 space-y-6 fade-in">
                         {currentView === 'dashboard' ? (
-                            <div className="grid grid-cols-12 gap-4">
-                                {/* Metrics Bar */}
-                                <div className="col-span-12 grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="bg-white p-4 rounded-xl border border-slate-200 card-shadow flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Entregas Ciclo</p>
-                                            <h3 className="text-2xl font-black text-slate-800 tracking-tighter">{stats.delivered}<span className="text-slate-300 mx-1 text-lg">/</span><span className="text-slate-400 text-lg">{stats.total}</span></h3>
+                            <div className="space-y-6">
+                                {/* TRÊS COLUNAS: SPRINT E BACKLOG */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="glass p-6 rounded-[2.5rem] neon-border-green shadow-sm flex flex-col justify-between relative group">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div>
+                                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">STATUS: CURRENT SPRINT</p>
+                                                <h3 className="text-2xl font-black dark:text-white tracking-tighter">Ciclo Ativo</h3>
+                                            </div>
+                                            {metrics.current.overdue > 0 && (
+                                                <div className="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 pulse-red">
+                                                    <Icon name="Alert" className="w-3.5 h-3.5" /> {metrics.current.overdue} ATRASADAS
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="text-right">
-                                            <div className="inline-block px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black border border-emerald-100">
-                                                {Math.round(stats.progress)}%
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-end">
+                                                <h2 className="text-5xl font-black text-emerald-500 tracking-tighter">{Math.round(metrics.current.perc)}%</h2>
+                                                <div className="text-right leading-none">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Tarefas</p>
+                                                    <p className="text-xl font-black dark:text-white">{metrics.current.total}</p>
+                                                </div>
+                                            </div>
+                                            <div className="w-full bg-slate-200 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                                                <div className="h-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{width: `${metrics.current.perc}%`}}></div>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2 pt-2 text-center">
+                                                <div className="bg-emerald-50 dark:bg-emerald-500/5 p-3 rounded-2xl border border-emerald-100/50">
+                                                    <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">Concluídas</p>
+                                                    <p className="text-xl font-black dark:text-white">{metrics.current.delivered}</p>
+                                                </div>
+                                                <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200/50">
+                                                    <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Pendente</p>
+                                                    <p className="text-xl font-black dark:text-white">{metrics.current.pending}</p>
+                                                </div>
+                                                <div className="bg-red-50 dark:bg-red-500/5 p-3 rounded-2xl border border-red-100/50">
+                                                    <p className="text-[8px] font-black text-red-500 uppercase mb-1">Atrasadas</p>
+                                                    <p className="text-xl font-black dark:text-white">{metrics.current.overdue}</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Backlog Produto</p>
-                                        <h3 className="text-2xl font-black text-slate-800 tracking-tighter">{backlogCount} <span className="text-xs text-slate-400 font-bold">ITENS</span></h3>
-                                    </div>
-                                    <div className="bg-indigo-600 p-4 rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-between text-white">
-                                        <div>
-                                            <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Status Roadmap</p>
-                                            <h3 className="text-xl font-black tracking-tighter">V.NEXT Ativo</h3>
+
+                                    <div className="glass p-6 rounded-[2.5rem] neon-border-blue shadow-sm flex flex-col justify-between">
+                                        <div className="mb-6">
+                                            <p className="text-[10px] font-black text-brand-500 uppercase tracking-[0.2em] mb-1">STATUS: NEXT SPRINT</p>
+                                            <h3 className="text-2xl font-black dark:text-white tracking-tighter">Planeamento V.Next</h3>
                                         </div>
-                                        <Icon name="Calendar" className="w-8 h-8 opacity-20"/>
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-end">
+                                                <h2 className="text-5xl font-black text-brand-500 tracking-tighter">{Math.round(metrics.next.perc)}%</h2>
+                                                <div className="text-right leading-none">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Previsto</p>
+                                                    <p className="text-xl font-black dark:text-white">{metrics.next.total}</p>
+                                                </div>
+                                            </div>
+                                            <div className="w-full bg-slate-200 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                                                <div className="h-full bg-brand-500 shadow-[0_0_12px_rgba(99,102,241,0.5)] transition-all duration-1000" style={{width: `${metrics.next.perc}%`}}></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3 pt-2 text-center">
+                                                <div className="bg-brand-50 dark:bg-brand-500/5 p-3 rounded-2xl border border-brand-100/50">
+                                                    <p className="text-[9px] font-black text-brand-600 uppercase mb-1">Prontas</p>
+                                                    <p className="text-xl font-black dark:text-white">{metrics.next.delivered}</p>
+                                                </div>
+                                                <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200/50">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Pendente</p>
+                                                    <p className="text-xl font-black dark:text-white">{metrics.next.pending}</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-xl border border-slate-200 card-shadow flex items-center gap-3">
-                                        <div className="p-2 bg-slate-50 rounded-lg"><Icon name="Package" className="text-indigo-600"/></div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Abas Ativas</p>
-                                            <p className="text-xs font-bold text-slate-700">{products.length - 1} Produtos</p>
+
+                                    <div className="glass p-6 rounded-[2.5rem] neon-border-amber shadow-sm flex flex-col">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div>
+                                                <p className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">REPO: BACKLOG POR PRODUTO</p>
+                                                <h3 className="text-2xl font-black dark:text-white tracking-tighter">Roadmap Ativo</h3>
+                                            </div>
+                                            <div className="bg-amber-500 text-white px-3 py-1 rounded-lg text-xs font-black">{metrics.backlog.total}</div>
+                                        </div>
+                                        <div className="flex-grow space-y-2 overflow-auto pr-2 custom-scrollbar max-h-[180px]">
+                                            {metrics.backlog.items.map((prod, i) => (
+                                                <div key={i} className="flex justify-between items-center p-3 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/30 group hover:border-amber-500/30 transition-colors">
+                                                    <span className="text-[11px] font-black uppercase text-slate-600 dark:text-slate-300 truncate max-w-[160px]">{prod.name}</span>
+                                                    <span className="text-sm font-black text-amber-500">{prod.count}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Charts Row */}
-                                <div className="col-span-12 lg:col-span-4 bg-white p-4 rounded-xl border border-slate-200 card-shadow h-[320px]">
-                                    <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> Distribuição Status
-                                    </h4>
-                                    <ResponsiveContainer width="100%" height="85%">
-                                        <PieChart>
-                                            <Pie 
-                                                data={statusData} 
-                                                cx="50%" cy="45%" innerRadius={50} outerRadius={70} 
-                                                paddingAngle={5} dataKey="value" 
-                                                onClick={d => d && setChartFilters({...chartFilters, status: chartFilters.status === d.name ? null : d.name})}
-                                                className="cursor-pointer outline-none"
-                                            >
-                                                {statusData.map((e,i) => <Cell key={i} fill={STATUS_COLORS[e.name] || CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={!chartFilters.status || chartFilters.status === e.name ? 1 : 0.25} />)}
-                                            </Pie>
-                                            <Tooltip contentStyle={{borderRadius:'10px', fontSize:'11px', border:'none', boxShadow:'0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                                            <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase'}} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-
-                                <div className="col-span-12 lg:col-span-8 bg-white p-4 rounded-xl border border-slate-200 card-shadow h-[320px]">
-                                    <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Top 8 Alocações Equipe
-                                    </h4>
-                                    <ResponsiveContainer width="100%" height="90%">
-                                        <BarChart 
-                                            data={filteredData.reduce((acc, item) => { 
-                                                const found = acc.find(a => a.name === item.assignee);
-                                                if(found) found.value++; else acc.push({name: item.assignee, value: 1});
-                                                return acc;
-                                            }, []).sort((a,b) => b.value - a.value).slice(0, 8)}
-                                            onClick={s => s && s.activeLabel && setChartFilters({...chartFilters, assignee: chartFilters.assignee === s.activeLabel ? null : s.activeLabel})}
-                                        >
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                            <XAxis dataKey="name" fontSize={9} fontWeight="900" axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} />
-                                            <YAxis hide />
-                                            <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius:'10px', border:'none'}} />
-                                            <Bar dataKey="value" radius={[4,4,0,0]} barSize={20}>
-                                                {assigneeData.map((e,i) => <Cell key={i} fill="#6366f1" fillOpacity={!chartFilters.assignee || chartFilters.assignee === e.name ? 1 : 0.3} />)}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-
-                                {/* Table Section - Fixed height with scroll */}
-                                <div className="col-span-12 bg-white rounded-xl border border-slate-200 card-shadow overflow-hidden flex flex-col">
-                                    <div className="px-4 py-3 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Listagem Analítica</span>
-                                            <div className="h-1 w-1 rounded-full bg-slate-300"></div>
-                                            <span className="text-[10px] font-bold text-slate-400">{filteredData.length} Demandas</span>
+                                {/* CROSS-SECTION ANALYSIS */}
+                                <div className="grid grid-cols-12 gap-6">
+                                    <div className="col-span-12 glass p-8 rounded-[2.5rem] neon-border-indigo shadow-sm">
+                                        <div className="flex justify-between items-start mb-8">
+                                            <div>
+                                                <p className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em] mb-1">BI: CROSS-SECTION ANALYSIS</p>
+                                                <h3 className="text-3xl font-black dark:text-white tracking-tighter">Produto x Tipo de Entrega</h3>
+                                            </div>
                                         </div>
-                                        { (searchTerm || chartFilters.status || chartFilters.assignee) && (
-                                            <button 
-                                                onClick={() => {setSearchTerm(''); setChartFilters({status:null, assignee:null}); setSelectedProduct('Todos');}}
-                                                className="text-[9px] font-black text-indigo-600 uppercase flex items-center gap-1 hover:underline"
-                                            >
-                                                <Icon name="Refresh" className="w-2.5 h-2.5"/> Limpar Filtros
-                                            </button>
-                                        )}
+                                        <div className="h-80 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={metrics.productTypeMatrix} margin={{top: 20, right: 30, left: 20, bottom: 5}}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#e2e8f0'} />
+                                                    <XAxis dataKey="product" fontSize={11} fontWeight="900" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#64748b'}} />
+                                                    <YAxis hide />
+                                                    <Tooltip cursor={{fill: 'rgba(99,102,241,0.05)'}} contentStyle={{background: isDark ? '#1e293b' : '#fff', border:'none', borderRadius:'12px', fontSize:'11px', fontWeight:'800'}} />
+                                                    <Legend iconType="circle" wrapperStyle={{fontSize:'10px', fontWeight:'900', textTransform:'uppercase', paddingTop:'30px'}} />
+                                                    {types.map((type, idx) => (
+                                                        <Bar key={type} dataKey={type} stackId="a" fill={CHART_COLORS[idx % CHART_COLORS.length]} radius={idx === types.length - 1 ? [6,6,0,0] : [0,0,0,0]}>
+                                                            <LabelList dataKey={type} content={<StackedLabel />} />
+                                                        </Bar>
+                                                    ))}
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
                                     </div>
-                                    <div className="overflow-auto max-h-[380px] custom-scrollbar">
-                                        <table className="w-full text-left text-[11px] border-collapse relative">
-                                            <thead className="bg-white/95 backdrop-blur sticky top-0 z-10 border-b border-slate-100 shadow-sm">
-                                                <tr>
-                                                    <th className="px-4 py-2.5 font-black text-slate-400 uppercase tracking-widest">Produto</th>
-                                                    <th className="px-4 py-2.5 font-black text-slate-400 uppercase tracking-widest">Título da Demanda</th>
-                                                    <th className="px-4 py-2.5 font-black text-slate-400 uppercase tracking-widest">Responsável</th>
-                                                    <th className="px-4 py-2.5 font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                </div>
+
+                                {/* LISTAGEM OPERACIONAL - 7 COLUNAS SOLICITADAS */}
+                                <div className="glass rounded-[2.5rem] overflow-hidden flex flex-col min-h-[500px]">
+                                    <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white/30 dark:bg-slate-900/30">
+                                        <h2 className="text-sm font-black uppercase tracking-widest italic dark:text-white flex items-center gap-3">
+                                            <Icon name="Dashboard" className="text-brand-500 not-italic" /> LISTAGEM GERAL <span className="text-slate-400 not-italic">DE ENTREGAS</span>
+                                        </h2>
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative">
+                                                <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <input 
+                                                    type="text" placeholder="Filtrar por título..." 
+                                                    value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                                    className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-xl text-[10px] font-bold w-64 focus:ring-1 focus:ring-brand-500 transition-all outline-none"
+                                                />
+                                            </div>
+                                            <span className="text-[10px] font-black bg-brand-600 text-white px-3 py-1.5 rounded-xl">{filteredData.length} ITENS</span>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-auto flex-grow custom-scrollbar max-h-[600px]">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
+                                                <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">
+                                                    <th className="px-6 py-5">TITLE</th>
+                                                    <th className="px-6 py-5 text-center">STATUS</th>
+                                                    <th className="px-6 py-5">ASSIGNEES</th>
+                                                    <th className="px-6 py-5">TIPO ENTREGA</th>
+                                                    <th className="px-6 py-5">TIPO ATIVIDADE</th>
+                                                    <th className="px-6 py-5">PRODUTO</th>
+                                                    <th className="px-6 py-5 text-center">SPRINT RELEASE</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-50">
-                                                {filteredData.map((item, i) => (
-                                                    <tr key={i} className="hover:bg-indigo-50/30 transition-colors group">
-                                                        <td className="px-4 py-2 font-black uppercase tracking-tighter text-slate-600">{item.product}</td>
-                                                        <td className="px-4 py-2 font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors truncate max-w-md">{item.title}</td>
-                                                        <td className="px-4 py-2 font-black uppercase text-slate-400 text-[10px]">{item.assignee}</td>
-                                                        <td className="px-4 py-2 text-center">
-                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-black border uppercase inline-block min-w-[90px] ${item.status === 'Entregue' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                                                                {item.status}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {filteredData.length === 0 && (
-                                                    <tr><td colSpan="4" className="py-20 text-center text-slate-300 font-black uppercase tracking-widest">Sem registros</td></tr>
-                                                )}
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                                                {filteredData.map((item, idx) => {
+                                                    const isOverdue = item.status !== 'Entregue' && parseDate(item.endDate) && parseDate(item.endDate) < new Date();
+                                                    return (
+                                                        <tr key={idx} className={`group hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors ${isOverdue ? 'bg-red-500/5' : ''}`}>
+                                                            <td className="px-6 py-4">
+                                                                <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 max-w-sm truncate group-hover:text-brand-500 transition-colors" title={item.title}>
+                                                                    {item.title}
+                                                                </p>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                                                                    item.status === 'Entregue' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400' : 
+                                                                    item.status.includes('Backlog') ? 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-500' :
+                                                                    'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400'
+                                                                }`}>
+                                                                    {item.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{item.assignee}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="text-[10px] font-black text-brand-500/80 dark:text-brand-400/80 uppercase tracking-tighter italic">{item.type}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="text-[10px] font-bold text-slate-500 uppercase">{item.activityType}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tighter">{item.product}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">{item.sprint}</span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            /* Settings - Compacted */
-                            <div className="max-w-xl mx-auto py-10">
-                                <div className="bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
-                                    <div className="bg-slate-900 p-8 text-white flex items-center gap-4">
-                                        <div className="bg-indigo-600 p-3 rounded-xl"><Icon name="Database" className="w-8 h-8"/></div>
-                                        <div>
-                                            <h2 className="text-xl font-black uppercase tracking-tight">Sincronização BI</h2>
-                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Motor de Importação XLSX</p>
-                                        </div>
+                            /* CONFIG VIEW */
+                            <div className="max-w-3xl mx-auto py-12">
+                                <div className="glass rounded-[3rem] overflow-hidden shadow-2xl">
+                                    <div className="p-12 bg-brand-600 text-white">
+                                        <h2 className="text-4xl font-black uppercase tracking-tighter italic">Data Engine</h2>
+                                        <p className="text-brand-100 text-sm font-bold tracking-widest opacity-80 uppercase">Importação de Backlogs Multicanal</p>
                                     </div>
-                                    <div className="p-8 space-y-6">
-                                        <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-10 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group relative">
-                                            <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                            <Icon name="Upload" className="w-10 h-10 text-indigo-600 mb-4 group-hover:scale-110 transition-transform"/>
-                                            <p className="font-black text-slate-700 uppercase tracking-tighter">Carregar Ficheiro Excel</p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Consolidação automática de abas</p>
+                                    <div className="p-12 space-y-10">
+                                        <label className="group flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-16 hover:border-brand-500 cursor-pointer relative bg-white/30 dark:bg-slate-900/30 transition-all">
+                                            <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
+                                            <div className="w-24 h-24 bg-brand-600 text-white rounded-[2rem] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><Icon name="Upload" className="w-10 h-10" /></div>
+                                            <p className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Sincronizar XLSX</p>
+                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2">Colunas esperadas: Title, Status, Assignees, Sprint Release, etc.</p>
                                         </label>
-
-                                        {importMessage.text && (
-                                            <div className={`p-4 rounded-xl text-[10px] font-black uppercase text-center border ${
-                                                importMessage.type === 'error' ? 'bg-red-50 text-red-600 border-red-100' : 
-                                                importMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-                                            }`}>
-                                                {importMessage.text}
-                                            </div>
-                                        )}
-
-                                        <div className="bg-slate-50 rounded-xl p-4 flex justify-between items-center">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Última Leitura</span>
-                                            </div>
-                                            <span className="text-xs font-bold text-slate-700">{lastSync}</span>
-                                        </div>
+                                        {importMessage.text && <div className="p-6 rounded-2xl text-[11px] font-black uppercase text-center border bg-brand-50 text-brand-600 dark:bg-brand-500/10 border-brand-100 dark:border-brand-500/20">{importMessage.text}</div>}
                                     </div>
                                 </div>
                             </div>
                         )}
                     </main>
 
-                    <footer className="px-4 py-4 border-t border-slate-200 flex justify-between items-center text-[9px] font-black uppercase tracking-[0.3em] text-slate-300">
-                        <div className="flex items-center gap-4">
-                            <span>Argus Core BI Infrastructure</span>
-                            <div className="h-3 w-px bg-slate-200"></div>
-                            <span className="text-emerald-500">System Ready</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span>V5.6.2 Stable Build</span>
-                        </div>
+                    <footer className="px-6 py-10 border-t border-slate-200 dark:border-slate-800 text-center">
+                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-400">Argus BI Infrastructure • Operational Intelligence Engine • v6.8.0 Stable</p>
                     </footer>
                 </div>
             );
