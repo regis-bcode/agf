@@ -225,9 +225,10 @@
                 ) : null
             );
 
-            const StackedLabel = ({ x, y, width, height, value }) => (
+            // Label para colunas agrupadas
+            const BarValueLabel = ({ x, y, width, height, value }) => (
                 value > 0 ? (
-                    <text x={x + width / 2} y={y + height / 2} fill="#fff" textAnchor="middle" dominantBaseline="middle" fontSize={10} fontWeight="900">
+                    <text x={x + width / 2} y={y - 8} fill={isDark ? "#94a3b8" : "#64748b"} textAnchor="middle" fontSize={10} fontWeight="800">
                         {value}
                     </text>
                 ) : null
@@ -243,7 +244,7 @@
                             </div>
                             <div className="leading-none">
                                 <h1 className="text-xl font-black tracking-tighter uppercase dark:text-white italic">ARGUS<span className="text-brand-500 not-italic">CORE</span></h1>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Operational BI v6.8</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Operational BI v6.9</p>
                             </div>
                         </div>
 
@@ -356,26 +357,55 @@
                                     </div>
                                 </div>
 
-                                {/* CROSS-SECTION ANALYSIS */}
+                                {/* CROSS-SECTION ANALYSIS - ALTERADO PARA COLUNAS AGRUPADAS */}
                                 <div className="grid grid-cols-12 gap-6">
                                     <div className="col-span-12 glass p-8 rounded-[2.5rem] neon-border-indigo shadow-sm">
                                         <div className="flex justify-between items-start mb-8">
                                             <div>
-                                                <p className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em] mb-1">BI: CROSS-SECTION ANALYSIS</p>
+                                                <p className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em] mb-1">BI: MULTI-BAR ANALYSIS</p>
                                                 <h3 className="text-3xl font-black dark:text-white tracking-tighter">Produto x Tipo de Entrega</h3>
                                             </div>
+                                            <div className="flex gap-2">
+                                                 <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                                                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                                    <span className="text-[9px] font-black uppercase text-slate-500">Distribuição Lateral</span>
+                                                 </div>
+                                            </div>
                                         </div>
-                                        <div className="h-80 w-full">
+                                        <div className="h-96 w-full">
                                             <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={metrics.productTypeMatrix} margin={{top: 20, right: 30, left: 20, bottom: 5}}>
+                                                <BarChart data={metrics.productTypeMatrix} margin={{top: 25, right: 30, left: 20, bottom: 20}}>
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#e2e8f0'} />
-                                                    <XAxis dataKey="product" fontSize={11} fontWeight="900" axisLine={false} tickLine={false} tick={{fill: isDark ? '#94a3b8' : '#64748b'}} />
+                                                    <XAxis 
+                                                        dataKey="product" 
+                                                        fontSize={11} 
+                                                        fontWeight="900" 
+                                                        axisLine={false} 
+                                                        tickLine={false} 
+                                                        tick={{fill: isDark ? '#94a3b8' : '#64748b'}} 
+                                                        dy={10}
+                                                    />
                                                     <YAxis hide />
-                                                    <Tooltip cursor={{fill: 'rgba(99,102,241,0.05)'}} contentStyle={{background: isDark ? '#1e293b' : '#fff', border:'none', borderRadius:'12px', fontSize:'11px', fontWeight:'800'}} />
-                                                    <Legend iconType="circle" wrapperStyle={{fontSize:'10px', fontWeight:'900', textTransform:'uppercase', paddingTop:'30px'}} />
+                                                    <Tooltip 
+                                                        cursor={{fill: 'rgba(99,102,241,0.05)'}} 
+                                                        contentStyle={{background: isDark ? '#1e293b' : '#fff', border:'none', borderRadius:'12px', fontSize:'11px', fontWeight:'800'}}
+                                                    />
+                                                    <Legend 
+                                                        iconType="circle" 
+                                                        layout="horizontal" 
+                                                        verticalAlign="bottom" 
+                                                        align="center"
+                                                        wrapperStyle={{fontSize:'9px', fontWeight:'900', textTransform:'uppercase', paddingTop:'40px'}} 
+                                                    />
                                                     {types.map((type, idx) => (
-                                                        <Bar key={type} dataKey={type} stackId="a" fill={CHART_COLORS[idx % CHART_COLORS.length]} radius={idx === types.length - 1 ? [6,6,0,0] : [0,0,0,0]}>
-                                                            <LabelList dataKey={type} content={<StackedLabel />} />
+                                                        <Bar 
+                                                            key={type} 
+                                                            dataKey={type} 
+                                                            fill={CHART_COLORS[idx % CHART_COLORS.length]} 
+                                                            radius={[4, 4, 0, 0]}
+                                                            barSize={12}
+                                                        >
+                                                            <LabelList dataKey={type} content={<BarValueLabel />} />
                                                         </Bar>
                                                     ))}
                                                 </BarChart>
@@ -384,7 +414,7 @@
                                     </div>
                                 </div>
 
-                                {/* LISTAGEM OPERACIONAL - 7 COLUNAS SOLICITADAS */}
+                                {/* LISTAGEM OPERACIONAL - 7 COLUNAS */}
                                 <div className="glass rounded-[2.5rem] overflow-hidden flex flex-col min-h-[500px]">
                                     <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white/30 dark:bg-slate-900/30">
                                         <h2 className="text-sm font-black uppercase tracking-widest italic dark:text-white flex items-center gap-3">
@@ -480,7 +510,7 @@
                     </main>
 
                     <footer className="px-6 py-10 border-t border-slate-200 dark:border-slate-800 text-center">
-                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-400">Argus BI Infrastructure • Operational Intelligence Engine • v6.8.0 Stable</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-400">Argus BI Infrastructure • Operational Intelligence Engine • v6.9.0 Stable</p>
                     </footer>
                 </div>
             );
